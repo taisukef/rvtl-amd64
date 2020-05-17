@@ -49,7 +49,17 @@ sgenrand:
                 and     ecx, ebp                ; 0xffff0000
                 shr     ecx, 16
                 or      ecx, edi
-                mov     [mt+edx*4], ecx         ; mt[ebx]
+                ;mov     [mt+edx*4], ecx         ; mt[ebx]
+                push rax
+                mov rax, rdx
+                shl rax, 2
+                mov r15, mt
+                add r15, rax
+                pop rax
+                mov dword [r15], ecx
+
+                ; mov dword [r15 + edx * 4], ecx
+
                 imul    eax, ebx                ; 69069
                 inc     eax                     ; seed
                 inc     edx

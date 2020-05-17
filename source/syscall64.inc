@@ -7,8 +7,8 @@
 %ifndef __SYSCALL64_INC
 %define __SYSCALL64_INC
 
-%assign SYS_read                   0
-%assign SYS_write                  1
+%assign SYS_read                   0x2000003 ; 0
+%assign SYS_write                  0x2000004 ; 1
 %assign SYS_open                   2
 %assign SYS_close                  3
 %assign SYS_newstat                4
@@ -19,7 +19,7 @@
 %assign SYS_mmap                   9
 %assign SYS_mprotect               10
 %assign SYS_munmap                 11
-%assign SYS_brk                    12
+%assign SYS_brk                    (0x2000000 + 45) ; 12
 %assign SYS_rt_sigaction           13
 %assign SYS_rt_sigprocmask         14
 %assign SYS_rt_sigreturn           15  ; stub
@@ -67,7 +67,7 @@
 %assign SYS_fork                   57  ; stub
 %assign SYS_vfork                  58  ; stub
 %assign SYS_execve                 59  ; stub
-%assign SYS_exit                   60
+%assign SYS_exit                   0x2000001 ; 60
 %assign SYS_wait4                  61
 %assign SYS_kill                   62
 %assign SYS_newuname               63

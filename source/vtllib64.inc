@@ -667,7 +667,10 @@ CopyFilename:
                 cmp     rax, rbp        ; FileNameBufferの直後
                 jae     .exit           ; バッファより大きくなる
                 mov     eax, [rdx]      ; FNArray[FNCount++]=rdi
-                mov     [rax*8 + FNArray], rdi
+                ;mov     [rax*8 + FNArray], rdi
+                mov r15, FNArray
+                mov [rax * 8 + r15], rdi
+
                 inc     rax
                 mov     [rdx], eax      ; ファイル名数の更新
                 rep     movsb           ; ファイル名のコピー
@@ -695,7 +698,10 @@ Selection:
                 inc     ecx
                 call    NewLine
                 xor     ebx, ebx
-    .loop:      mov     rdi, [rbx*8 + FNArray]
+    .loop:      ;mov     rdi, [rbx*8 + FNArray]
+                mov r15, FNArray
+                mov rdi, [rdx * 8 + r15]
+
                 mov     rax, rdi
                 mov     rax, rbx
                 push    rcx
@@ -915,7 +921,10 @@ GetHistory:
                 push    rdx
                 mov     ecx, MAXLINE
                 mul     rcx
-                add     rax, history0
+                ;add     rax, history0
+                mov r15, history0
+                add rax, r15
+
                 pop     rdx
                 ret
 

@@ -61,7 +61,8 @@ DEFAULT REL
 
 ;==============================================================
 section .text
-global _start
+;global _start
+global _main ; for Mac
 
 ;-------------------------------------------------------------------------
 ; システムの初期化
@@ -78,6 +79,8 @@ global _start
 ;   * r11とrcxは破壊される
 ;-------------------------------------------------------------------------
 _start:
+_main: ; for Mac
+jmp .skipargv
                 mov     rdi, argc               ; パラメータ保存領域先頭
                 pop     rbx                     ; rbx = argc
                 mov     [rdi], rbx              ; argc 引数の数を保存
@@ -105,7 +108,6 @@ _start:
                 mov     [rdi + 32], rdx         ; vtl用の引数への配列先頭
                 sub     rax, rcx
                 mov     [rdi + 24], rax         ; vtl用の引数の個数 (argc_vtl0)
-
     .L4:        ; argv[0]="xxx/rvtlw" ならば cgiモード
                 xor     edx, edx
                 lea     rbx, [cginame]            ; 文字列 'wltvr',0
@@ -126,14 +128,16 @@ _start:
                 jmp     short .L6
     .L7:        inc     edx                     ; edx = 1
     .L8:        mov     [cgiflag], edx          ; rvtlwフラグ設定
-
                 call    GET_TERMIOS             ; termios の保存
                 call    SET_TERMIOS             ; 端末のローカルエコーOFF
 
+.skipargv:
                 mov     rbp, VarArea            ; サイズ縮小のための準備
-                xor     edi, edi                ; 0 を渡して現在値を得る
-                mov     eax, SYS_brk            ; ヒープ先頭取得
-                syscall
+                ;xor     edi, edi                ; 0 を渡して現在値を得る
+                ;mov     eax, SYS_brk            ; ヒープ先頭取得
+                ;syscall
+                mov rax, Program
+
                 mov     rbx, rax                ; ヒープにコードも配置
                 mov     rdi, rax
                 xor     ecx, ecx
@@ -147,8 +151,10 @@ _start:
                 add     rdi, MEMINIT            ; ヒープ末(brk)設定
                 mov     cl, '*'                 ; RAM末設定
                 mov     [rbp+rcx*8], rdi
-                mov     eax, SYS_brk            ; brk
-                syscall
+                ;mov     eax, SYS_brk            ; brk
+                ;syscall
+                mov rax, Heap
+
                 xor     eax, eax
                 dec     eax
                 mov     [rbx] ,eax              ; コード末マーク
@@ -158,6 +164,8 @@ _start:
                 mov     cl, '`'                 ; 乱数シード設定
                 mov     [rbp+rcx*8], rax
                 call    sgenrand
+
+            jmp .skipsig
 
                 xor     ebx, ebx                ; シグナルハンドラ設定
                 lea     rax, [SigIntHandler]
@@ -188,7 +196,10 @@ _start:
                 dec     eax
                 ja      .not_init
                 lea     rdi, [envp]             ; pid=1 なら環境変数設定
-                mov     qword[rdi], env         ; envp 環境変数
+                ;mov     qword[rdi], env         ; envp 環境変数
+                mov r15, env
+                mov [rdi], r15
+
                 lea     rbx, [initvtl]          ; /etc/init.vtl
                 call    fropen                  ; open
                 jle     .not_init               ; 無ければ継続
@@ -198,11 +209,13 @@ _start:
                 mov     r14b, 1                 ; EOL=yes
                 jmp     short Launch
     .not_init:
+.skipsig:
+    mov     rbp, VarArea            ; サイズ縮小のための準備 ; for Mac
                 call    WarmInit2
                 xor     eax, eax
                 mov     [counter], rax          ; コマンド実行カウント初期化
                 mov     [current_arg], rax      ; 処理済引数カウント初期化
-                call    LoadCode                ; あればプログラムロード
+;                call    LoadCode                ; あればプログラムロード
                 jg      Launch                  ; メッセージ無し
 %ifndef SMALL_VTL
                 ; 起動メッセージを表示
@@ -244,7 +257,8 @@ MainLoop:
                 call    EditMode            ; 編集モード
                 jmp     short MainLoop
 
-    .exec:      inc     qword[counter]
+    .exec:
+                inc     qword[counter]
                 call    IsAlpha
                 jb      Command             ; コマンド実行
                 call    SetVar              ; 変数代入
@@ -305,28 +319,40 @@ Command:
                 cmp     al, '/'
                 ja      .comm2
                 sub     bl,  '!'            ; ジャンプテーブル
-                call    [rbx * 8 + TblComm1]
+                ;call    [rbx * 8 + TblComm1]
+                mov r15, TblComm1
+                call [rbx * 8 + r15]
+
                 jmp     MainLoop
     .comm2:     cmp     al, ':'
                 jb      .comm3
                 cmp     al, '@'
                 ja      .comm3
                 sub     bl,  ':'
-                call    [rbx * 8 + TblComm2]
+                ;call    [rbx * 8 + TblComm2]
+                mov r15, TblComm2
+                call [rbx * 8 + r15]
+
                 jmp     MainLoop
     .comm3:     cmp     al, '['
                 jb      .comm4
                 cmp     al, '`'
                 ja      .comm4
                 sub     bl,  '['
-                call    [rbx * 8 + TblComm3]
+                ;call    [rbx * 8 + TblComm3]
+                mov r15, TblComm3
+                call [rbx * 8 + r15]
+
                 jmp     MainLoop
     .comm4:     cmp     al, '{'
                 jb      .comexit
                 cmp     al, '~'
                 ja      .comexit
                 sub     bl,  '{'
-                call    [rbx * 8 + TblComm4]
+                ;call    [rbx * 8 + TblComm4]
+                mov r15, TblComm4
+                call [rbx * 8 + r15]
+
     .exit:      jmp     MainLoop
     .comexit:   cmp     al, ' '
                 je      .exit
@@ -740,7 +766,7 @@ List:
                 test    rax, rax
                 jne     .partial
                 xor     ebx, ebx
-                mov     bl, '='
+                mov     bl, '=' ; == 61
                 mov     rdi, [rbp+rbx*8]    ; コード先頭アドレス
                 jmp     short .all
     .partial:
@@ -1833,6 +1859,7 @@ READ_FILE:
                 test    rax, rax
                 je      .end                ; EOF
                 cmp     byte[rsi], 10       ; LineFeed
+                
                 je      .exit
                 inc     rsi
                 jmp     short .next
@@ -2129,7 +2156,10 @@ LabelScan:
                 add     rdi, rax            ; 次行先頭
                 inc     eax                 ; コード末チェック
                 je      .finish             ; スキャン終了
-                cmp     rsi, TablePointer   ; テーブル最終位置
+                ;cmp     rsi, TablePointer   ; テーブル最終位置
+                mov r15, TablePointer
+                cmp rsi, r15
+
                 je      .finish             ; スキャン終了
                 jmp     short .nextline
 
@@ -2178,7 +2208,10 @@ LabelSearch:
     .next:      lea     rdi, [rdi + 32]     ; 次のラベルエントリー
                 cmp     rdi, rcx            ; すべての登録をチェック
                 je      .notfound
-                cmp     rdi, TablePointer   ; ラベル領域最終？
+                ;cmp     rdi, TablePointer   ; ラベル領域最終？
+                mov r15, TablePointer
+                cmp rdi, r15
+
                 je      .notfound
                 jmp     short .cmp_line     ; 次のテーブルエントリ
 
@@ -3951,6 +3984,9 @@ EOL             resb    1           ; rbp-2
 LSTACK          resb    1           ; rbp-1
 VarArea         resq    256         ; rbp    後半128qwordはLSTACK用
 VarStack        resq    VSTACKMAX   ; rbp+2048
+
+Program         resb    (1024 * 1024) ; 1Mbyte for program for Mac
+Heap            resb    (1024 * 1024) ; 1Mbyte for heap for Mac
 
 %ifdef VTL_LABEL
                 alignb  4

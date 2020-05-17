@@ -22,7 +22,7 @@ Exit:
                 syscall
 
 ;------------------------------------
-; exit with ebx
+; exit with eax
 ExitN:
                mov      rdi, rax            ; exit with code ebx
                mov      eax, SYS_exit
@@ -509,6 +509,10 @@ InChar:
                 pop     rdi
                 pop     rdx
                 pop     rcx
+
+                cmp     al, 0x0c ; ignore 13 for Mac
+                jz InChar
+
                 ret
 
 ;------------------------------------
