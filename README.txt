@@ -1,5 +1,10 @@
 ★  Return of Very Tiny Language (64bit) ver.4.01
 
+-  2020/05/18  Taisuke Fukuno
+MacOS上で最低限動くように改造。起動パラメーターなど未実装多数。
+syscall 一部変更。
+「error: 32-bit absolute addressing is not supported in 64-bit mode」をr15経由にして対応。(see also test.asm)
+
 -  2015/10/05  Jun Mizutani
 
 rvtl64 は Tiny Basic系のプログラミング環境です。アセンブラで作成している
