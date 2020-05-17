@@ -4,6 +4,7 @@
 MacOS上で最低限動くように改造。起動パラメーターなど未実装多数。
 syscall 一部変更。
 「error: 32-bit absolute addressing is not supported in 64-bit mode」をr15経由にして対応。(see also test.asm)
+https://fukuno.jig.jp/2853
 
 -  2015/10/05  Jun Mizutani
 
